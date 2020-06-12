@@ -1,4 +1,4 @@
-FROM golang:1.15.6
+FROM golang:rc
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
@@ -31,33 +31,19 @@ ENV PATH "$PATH:/root/bin"
 
 RUN curl -sfL https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protoc-3.12.3-linux-x86_64.zip -o /tmp/protoc.zip && unzip /tmp/protoc.zip -d "$HOME"/protoc
 
-# Android/Java binding tests
-RUN apt-get install -y default-jre
-
-# Duplicity backup tool for S3 gateway test scenarios
-RUN apt-get install -y duplicity python-pip && pip install boto
-
-# Duplicati backup tool for S3 gateway test scenarios
-RUN apt-get -y install mono-devel
-RUN curl -sfL https://updates.duplicati.com/beta/duplicati_2.0.5.1-1_all.deb -o /tmp/duplicati.deb
-RUN apt -y install /tmp/duplicati.deb
-
 # Linters
 
 RUN curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | bash -s -- -b ${GOPATH}/bin v1.33.0
 
-RUN GO111MODULE=on go get \
-    # Linters formatters \
-    github.com/ckaznocha/protoc-gen-lint@v0.2.1 \
-    github.com/nilslice/protolock/cmd/protolock@v0.15.0 \
-    github.com/josephspurrier/goversioninfo@63e6d1acd3dd857ec6b8c54fbf52e10ce24a8786 \
-    github.com/loov/leakcheck@83e415ebc9b993a8a0443bb788b0f737a50c4b62 \
-    honnef.co/go/tools/cmd/staticcheck@2020.2 \
+# Linters formatters
+RUN go install github.com/ckaznocha/protoc-gen-lint@v0.2.1 && \
+    go install github.com/nilslice/protolock/cmd/protolock@v0.15.0 && \
+    go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@63e6d1acd3dd857ec6b8c54fbf52e10ce24a8786 && \
+    go install honnef.co/go/tools/cmd/staticcheck@2020.2 && \
     # Output formatters \
-    github.com/mfridman/tparse@36f80740879e24ba6695649290a240c5908ffcbb \
-    github.com/axw/gocov/gocov@v1.0.0 \
-    github.com/AlekSi/gocov-xml@3a14fb1c4737b3995174c5f4d6d08a348b9b4180 \
-    github.com/tailscale/depaware@e2f543bafb1d2b45d19324d0637453df76662408
+    go install github.com/mfridman/tparse@36f80740879e24ba6695649290a240c5908ffcbb  && \
+    go install github.com/axw/gocov/gocov@v1.0.0  && \
+    go install github.com/AlekSi/gocov-xml@3a14fb1c4737b3995174c5f4d6d08a348b9b4180
 
 RUN apt-get install -yq clang-format
 
@@ -66,7 +52,7 @@ RUN apt-get install -yq clang-format
 # NOTE: It requires its own go path because it uses db files from the licenses
 # go module.
 RUN mkdir -p /ci/go-licenses && \
-    GO111MODULE=on GOPATH=/ci/go-licenses go get \
+    GOPATH=/ci/go-licenses go install \
     github.com/google/go-licenses@2ee7a02f6ae4f78b6b2d6ef421cedadbeabe2a89
 ENV PATH "$PATH:/ci/go-licenses/bin"
 
